@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<div class="w-full h-screen bg-zinc-900">
+    <div class="parent relative top-0 left-0 w-full h-[700vh] bg-zinc-900">
+        <div class="w-full sticky top-0 left-0 w-full h-52 h-screen bg-zinc-400">
+            <canvas class="w-full h-screen" id="frame"></canvas>
+        </div>
+    </div>
+</div>
+
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+ <script>
+    // Object to keep track of the current frame index and maximum number of frames
+    const frames = {
+        currentIndex: 0,
+        maxIndex: 382,
+    }
+
+    // Counter for how many images have been preloaded
+    let imagesLoaded = 0;
+    // Array to store all preloaded images
+    const images = [];
+
+    // Get the canvas element and its drawing context
+    const canvas = document.getElementById('frame');
+    const context = canvas.getContext('2d');
+
+    // Function to preload all frame images
+    function preloadImages() {
+        for (let i = 1; i <= frames.maxIndex; i++) {
+            // Build image file path with padded numbers (e.g., frame_0001.jpeg)
+            const imageUrl = `./frames/frame_${i.toString().padStart(4, '0')}.jpeg`;
+
+            const img = new Image();
+            img.src = imageUrl;
+
+            // When an image is loaded, increase counter
+            img.onload = () => {
+                imagesLoaded++;
+
+                // Once all images are loaded, display the first frame and start animation
+                if (imagesLoaded === frames.maxIndex) {
+                    console.log('All images preloaded');
+                    loadimage(frames.currentIndex);
+                    startAnimation();
+                }
+            }
+            // Store the image in the array
+            images.push(img);
+        }
+    }
+
+    // Function to load and draw an image onto the canvas by index
+    function loadimage(index) {
+        if (index >= 0 && index <= frames.maxIndex) {
+            const img = images[index];
+
+            // Make the canvas cover the entire browser window
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            // Calculate scaling to fit the image proportionally into the canvas
+            const scaleX = canvas.width / img.width;
+            const scaleY = canvas.height / img.height;
+            const scale = Math.max(scaleX, scaleY);
+
+            // Calculate new dimensions after scaling
+            const newWidth = img.width * scale;
+            const newHeight = img.height * scale;
+
+            // Center the image on the canvas
+            const offsetX = (canvas.width - newWidth) / 2;
+            const offsetY = (canvas.height - newHeight) / 2;
+
+            // Clear the canvas and draw the new frame
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            context.imageSmoothingEnabled = true;
+            context.imageSmoothingQuality = 'high';
+            context.drawImage(img, offsetX, offsetY, newWidth, newHeight);
+
+            // Update the current frame index
+            frames.currentIndex = index;
+        }
+    }
+
+    // Function to start GSAP scroll-based animation
+    function startAnimation() {
+        let tl = gsap.timeline({
+            scrollTrigger: {
+                trigger: ".parent",   // Element that triggers the scroll animation
+                start: "top top",     // Animation starts when top of .parent hits top of viewport
+                scrub: 2,             // Smooth scrubbing, takes 2 seconds to catch up
+                end: "bottom bottom", // Animation ends when bottom of .parent hits bottom of viewport
+                markers: true,        // Show markers for debugging
+            }
+        });
+
+        // Animate frame index from 0 to maxIndex while scrolling
+        tl.to(frames, {
+            currentIndex: frames.maxIndex,
+            onUpdate: () => loadimage(Math.floor(frames.currentIndex)), // Update frame on each change
+        });
+    }
+
+    // Start preloading images when the script runs
+    preloadImages();
+</script>
+
+</body>
+
+</html>
